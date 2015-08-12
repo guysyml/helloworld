@@ -1,6 +1,7 @@
 FROM ubuntu:15.04
 MAINTAINER Vijay <vijay.kumar@bizruntime.com>
-
+ENV SCALA_VERSION 2.11.7
+ENV SBT_VERSION 0.13.8
 #Oracle Java 8
 RUN \
 	apt-get update && \
@@ -21,9 +22,20 @@ RUN chmod 700 /root/.ssh/id_rsa && \
 RUN apt-get install -y git && \
 	cd /opt && \
 	git clone  git@github.com:guysyml/stagemail.git && \
-	echo "deb http://dl.bintray.com/sbt/debian /" > /etc/apt/sources.list.d/sbt.list && \
-	apt-get update && apt-get install --force-yes -y sbt && \
-	cd /opt/stagemail/StageMail && sbt compile && sbt clean
+curl -o scala-$SCALA_VERSION.tgz http://downloads.typesafe.com/scala/$SCALA_VERSION/scala-$SCALA_VERSION.tgz && \
+  tar -xf scala-$SCALA_VERSION.tgz && \
+  rm scala-$SCALA_VERSION.tgz && \
+  echo >> /root/.bashrc && \
+  echo 'export PATH=~/scala-$SCALA_VERSION/bin:$PATH' >> /root/.bashrc
+
+# Install sbt
+RUN \
+  curl -L -o sbt-$SBT_VERSION.deb https://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb && \
+  dpkg -i sbt-$SBT_VERSION.deb && \
+  rm sbt-$SBT_VERSION.deb && \
+  apt-get update && \
+  apt-get install sbt && \
+  cd /opt/stagemail/StageMail && sbt compile && sbt clean
 	
 # Generate Configuration file from Environment Variables
 RUN echo '[program:play]\ndirectory=/opt/stagemail/StageMail\ncommand=sbt clean start -Dapplication.secret=abcdefghifdgdgf' > /etc/supervisor/conf.d/play.conf && \
